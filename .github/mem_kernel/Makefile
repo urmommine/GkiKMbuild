@@ -1,1 +1,1 @@
-obj-m += memory.o process.o entry.o
+obj-m += memory.o process.o mem_kernel.o
