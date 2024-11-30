@@ -1,57 +1,51 @@
-name: Build GKI Kernel with MemKernel
+name: GKI Kernel Module Build
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-gki-kernel:
-    name: Build GKI Kernel
-    runs-on: ubuntu-latest
+  build:
+    name: GKI Kernel Module Build
+    runs-on: ubuntu-22.04
+    needs: upload-artifact
+    strategy:
+      matrix:
+        tag:
+          - android12-5.10
+        arch:
+          - aarch64
+
     steps:
-      - name: Checkout Kernel Source
-        uses: actions/checkout@v3
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
         with:
-          submodules: true
+          root-reserve-mb: 8192
+          temp-reserve-mb: 2048
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
 
-      - name: Set up Kernel Environment
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            build-essential \
-            libncurses-dev \
-            bison \
-            flex \
-            libssl-dev \
-            bc \
-            ccache \
-            gcc-aarch64-linux-gnu \
-            gcc-arm-linux-gnueabi \
-            curl
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Clone GKI Kernel Source
-        run: |
-          git clone https://android.googlesource.com/kernel/common -b android-12-5.10 kernel_src
-          cd kernel_src
-          git checkout 5.10.198-android12-9
-
-      - name: Integrate MemKernel Driver
-        run: |
-          cd kernel_src
-          curl -LSs "https://raw.githubusercontent.com/Poko-Apps/MemKernel/main/kernel/setup.sh" | bash -s Y
-
-      - name: Configure Kernel
-        run: |
-          cd kernel_src
-          make ARCH=arm64 defconfig
-          make ARCH=arm64 menuconfig
-
-      - name: Build Kernel
-        run: |
-          cd kernel_src
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc)
-
-      - name: Upload Kernel Artifacts
-        uses: actions/upload-artifact@v3
+      - name: Run GKI Kernel Build Action
+        uses: ./
         with:
-          name: gki-kernel-build
-          path: kernel_src/arch/arm64/boot/
+          arch: ${{ matrix.arch }}
+          tag: ${{ matrix.tag }}
+          module-name: mem_kernel
+          module-path: mem_kernel
+
+  upload-artifact:
+    name: Upload LKM Source Code
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Upload LKM Source Code
+        uses: actions/upload-artifact@v4
+        with:
+          name: mem_kernel
+          path: .github/mem_kernel
