@@ -8,7 +8,7 @@ branding:
 inputs:
   tag:
     description: 'Specify the Android kernel version and tag to build for (e.g., android13-5.15).'
-    default: 'android13-5.15'
+    default: 'android12-5.15'
     required: true
   arch:
     description: 'Specify the architecture to build for (e.g., aarch64 or x86_64).'
